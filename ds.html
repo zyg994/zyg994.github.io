@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+        }
+        .game{
+            width: 750px;
+            height: 600px;
+            /* border: 1px solid black; */
+            margin: 50px auto;
+        }
+        .ground{
+            width: 750px;
+            height: 550px;
+            background-image: url('./img/bg_canvas.png');
+            margin: 25px 0;
+            position: relative;
+            /* 当鼠标移入游戏区域时，鼠标会变成锤子 */
+            cursor: url('./img/hammer.png'),auto;
+        }
+        .score{
+            position: absolute;
+            width: 200px;
+            height: 30px;
+            /* border: 2px solid red; */
+            right: 130px;
+            top: 155px;
+        }
+        /* 当一个div中存在图片和文本时  两者无法垂直居中 */
+        .score img{
+            vertical-align: middle;
+        }
+        .score span,.life span{
+            color: #fff;
+            font-size: 20px;
+            /* 设置元素的垂直对齐方式，middle与元素中部对齐 */
+            vertical-align: middle;
+            line-height: 30px;
+        }
+        .life{
+            width: 100px;
+            height: 30px;
+            position: absolute;
+            right: 110px;
+            top: 155px;
+        }
+        /* 设置每一个洞穴的样式 */
+        .mask{
+            width: 140px;
+            height: 125px;
+            position: absolute;
+            /* 设置地鼠出现超出洞穴的位置隐藏 */
+            overflow: hidden;
+        }
+        /* 设置每一个地鼠的样式 */
+        .mouse{
+            width: 110px;
+            height: 125px;
+            position: absolute;
+            left: 0;
+            top: 25px;
+        }
+        @keyframes moveUp{
+            0%{
+                top: 70px;
+            }
+            100%{
+                top: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 游戏面板创建 -->
+    <div class="game">
+        <div class="ground">
+            <div class="score">
+                <img src="./img/score.png" alt="">
+                <span class="scoreCon">0</span>
+            </div>
+            <div class="life">
+                <span>生命：</span>
+                <span class="lifeCon">10</span>
+            </div>
+        </div>
+    </div>
+</body>
+<script>
+    // 改变光标图片的切换
+    // 光标实在草地区域出现
+    // 定义一ground全局变量
+    var ground;
+    ground = document.getElementsByClassName('ground')[0];
+    // onmousedown 鼠标按下事件
+    ground.onmousedown = function(){
+        ground.style.cursor = 'url(./img/hammer2.png),auto';
+    }
+    // onmouseup 鼠标抬起事件
+    ground.onmouseup = function(){
+        ground.style.cursor = 'url(./img/hammer.png),auto';
+    }
+    // 地鼠和洞穴位置都是一致
+    // 创建地鼠出现的坐标点   X代表元素左偏移值    Y代表元素上偏移值
+    var coordList = [{x:130,y:173},{x:320,y:171},{x:515,y:175},{x:105,y:265},{x:320,y:256},{x:522,y:256},{x:96,y:350},{x:320,y:355},{x:540,y:358}];
+// [] 数组  length 代表数组长度
+    
+    // 定义一个存放洞穴的空数组
+    var mask = [];
+
+    // 使用new 关键字创建了一个数组对象
+    var mouse = new Array(9);
+
+    // 设置地鼠同时出现的最大个数
+    var maxCount = 2;
+
+    // 定义初始分数
+    var score = 0;
+
+    // 定义初始生命值
+    var life = 10;
+
+    // 定义一个全局定时器  判断游戏开始和结束
+    var gameTimer
+    
+    init();
+    // 游戏开始
+    function init(){
+        // 调用洞穴的创建方法
+        creatMask();
+        // 创建一个游戏开始的定时器 每个0.05s执行一次 循环不断
+        var gameTimer = setInterval(function(){
+            // 每隔0.05s创建地鼠
+            contorlMouse();
+            // 判断游戏结束  当生命值为0，则游戏结束 停止游戏循环定时器
+            if(life <= 0){
+                clearInterval(gameTimer);
+                // 弹出游戏结束提示
+                alert("游戏结束，您的得分为：" + score);
+            }
+            // 将js当中获取的分数值渲染到页面中分数区域
+            document.getElementsByClassName('scoreCon')[0].innerHTML = score;
+            document.getElementsByClassName('lifeCon')[0].innerHTML = life;
+            // 增加游戏难度  分数每递增100时，允许老鼠出现的个数+1
+            maxCount = score / 100 + 1;
+        },50);
+    }
+
+    // 设置洞穴的位置
+    function creatMask(){
+        // 有多少个洞穴位置  9个 
+        for(var i = 0; i < coordList.length; i++){
+            // createElement 创建一个元素节点
+           var temp = document.createElement('div');
+            //  给新建的每一个div添加class名字为mask
+            temp.classList.add('mask');
+            // 设置mask的位置 
+            temp.style.left = coordList[i].x + 'px';
+            temp.style.top = coordList[i].y + 'px';
+
+            // 设置草坪遮盖
+            var img = document.createElement("div");
+            img.classList.add('mask');
+            img.style.background = 'url("./img/mask'+i+'.png")';
+            // 所有遮罩层的层级大于地鼠的层级 并且上一层的遮罩层层级是不能大于下一层的老鼠的层级
+            img.style.zIndex = i * 2 +1;
+
+            // 将当前的temp元素添加到mask数组中
+            mask[i] = temp;
+            // 将遮罩层添加到洞穴上
+            temp.appendChild(img);
+            // 洞穴添加到草地中
+            ground.appendChild(temp);
+            temp.index = i;
+            // 添加点击事件 实现老鼠被打
+            temp.onclick = function(){
+                disappear(this.index,true);
+            }
+        }
+    }
+
+    // 创建每一个地鼠
+    function craeteMouse(i){
+        // 一共有四个种类的地鼠
+        // Math.random()*4 随机生成0-3之间的数字  包含小数
+        // 向下取0-3之间的随机整数
+        var num = Math.floor(Math.random()*4);
+        // 页面中添加存放地鼠的div  地鼠的位置洞穴位置一致
+        var temp = document.createElement('div');
+        // 给div添加class
+        temp.classList.add('mouse');
+        // 这里我们随机产生的num 随机出现的地鼠图片的序号
+        temp.num = num;
+
+        // 设置地鼠出现的图片
+        temp.style.background = "url('./img/mouse" + num +".png')";
+        console.log(temp.style.background);
+
+        // index 下标 从0开始 item数组里面的每一项
+        mouse[i]=temp;
+        // 设置地鼠的层级
+        temp.style.zIndex = i * 2;
+        // 设置地鼠的出现动画
+        temp.style.animation = "moveUp 0.5s linear";
+        // 将生成的地鼠添加到游戏画面中
+        // ground.appendChild(temp);
+        // 地鼠在洞穴中出现
+        mask[i].appendChild(temp);
+        // 每隔两秒判断有没有被打 没有被打 停留2s后消失
+        var timer = setTimeout(function(){
+            disappear(i,false);
+        },2000);
+        temp.timer= timer
+    }
+//    控制地鼠出现的条件
+    function contorlMouse(){
+        // 设置地鼠随机出现位置
+        var num = Math.floor(Math.random()*9);
+        // mouse是一个数组 filter过滤  对数组内的每一个值进行删选
+        // 地鼠同时出现个数小于最大老鼠个数 当前洞穴中有老鼠
+        if(mouse.filter(function(item){
+            // 留下满足条件的元素  直接返回
+            return item;
+        }).length < maxCount && mouse[num] == null){
+            craeteMouse(num);
+        }
+    }
+    // contorlMouse();
+    // 创建消失方法
+    function disappear(i,isHit){
+        if(mouse[i]){
+            // 获取每一只地鼠的top值
+            mouse[i].style.top = '70px';
+            // 判断地鼠是否被打
+            if(isHit){
+                // 分数+10
+                score += 10;
+                // 被打后 添加头冒金星的效果
+               var boom = document.createElement('img'); 
+                // 直接沿用.mouse的css样式
+               boom.classList.add('mouse');
+               boom.style.top='-40px';
+               boom.src='./img/bomb.gif';
+            // 地鼠被打之后图片的替换
+            mouse[i].style.background = 'url("./img/hit' + mouse[i].num +'.png")';
+            // 将boom元素添加到地鼠上面
+            mouse[i].appendChild(boom);
+        //    地鼠被打之后消失 清除创建地鼠的定时器
+            clearTimeout(mouse[i].timer)
+            }else{
+                // 生命值-1
+                life -= 1;
+            }
+            // 定时器
+            setTimeout(function(){
+                // 当地鼠出现时，在洞穴中移除改地鼠
+                if(mouse[i]){
+                    mask[i].removeChild(mouse[i]);
+                }
+                // 地鼠移除后，当前值 为空
+                mouse[i] = null;
+            },500)
+        }
+    }
+</script>
+</html>
